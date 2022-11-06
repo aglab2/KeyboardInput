@@ -17,6 +17,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_PROCESS_ATTACH:
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
+        break;
     case DLL_PROCESS_DETACH:
         CloseDLL();
         break;
@@ -97,6 +98,7 @@ static void loadJabo()
         gJaboWM_KeyUp = (WM_KeyUpFn)GetProcAddress(gJabo, "WM_KeyUp");
     }
 
+#if 1
     {
         memset(gMultipliersTable, 0, sizeof(gMultipliersTable));
         auto cfgpath = dir / "KeyboardInputConfig.txt";
@@ -109,6 +111,7 @@ static void loadJabo()
         }
         fclose(f);
     }
+#endif
 }
 
 /******************************************************************
@@ -122,7 +125,7 @@ EXPORT void CALL CloseDLL(void)
 {
     if (gJabo)
     {
-        CloseHandle(gJabo);
+        FreeLibrary(gJabo);
         gJabo = nullptr;
     }
 }
@@ -216,8 +219,13 @@ EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
 {
     loadJabo();
     gJaboGetKeys(Control, Keys);
+#if 1
     Keys->X_AXIS /= gDivisor;
     Keys->Y_AXIS /= gDivisor;
+#else
+    if (Keys->U_DPAD)
+        Keys->Y_AXIS = 80;
+#endif
 }
 
 /******************************************************************
@@ -275,8 +283,10 @@ EXPORT void CALL RomOpen(void)
 {
     loadJabo();
     gJaboRomOpen();
+#if 1
     gDivisor = 1;
     memset(gActiveKeys, 0, sizeof(gActiveKeys));
+#endif
 }
 
 /******************************************************************
@@ -290,6 +300,7 @@ EXPORT void CALL WM_KeyDown(WPARAM wParam, LPARAM lParam)
 {
     loadJabo();
     gJaboWM_KeyDown(wParam, lParam);
+#if 1
     if (0 <= wParam && wParam <= sizeof(gActiveKeys) / sizeof(*gActiveKeys))
     {
         auto& active = gActiveKeys[wParam];
@@ -304,6 +315,8 @@ EXPORT void CALL WM_KeyDown(WPARAM wParam, LPARAM lParam)
             active = true;
         }
     }
+#else
+#endif
 }
 
 /******************************************************************
@@ -317,6 +330,7 @@ EXPORT void CALL WM_KeyUp(WPARAM wParam, LPARAM lParam)
 {
     loadJabo();
     gJaboWM_KeyUp(wParam, lParam);
+#if 1
     if (0 <= wParam && wParam <= sizeof(gActiveKeys) / sizeof(*gActiveKeys))
     {
         auto& active = gActiveKeys[wParam];
@@ -331,4 +345,6 @@ EXPORT void CALL WM_KeyUp(WPARAM wParam, LPARAM lParam)
             active = false;
         }
     }
+#else
+#endif
 }

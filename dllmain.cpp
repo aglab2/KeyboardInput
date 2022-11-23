@@ -107,7 +107,7 @@ static void loadJabo()
         auto cfgpath = dir / "KeyboardInputConfig.txt";
         FILE* f = _wfopen(cfgpath.c_str(), L"r");
         int divisor, code;
-        while (2 == fscanf(f, "%d %d", &divisor, &code))
+        while (2 == fscanf(f, "%d %x", &divisor, &code))
         {
             if (0 <= code && code <= sizeof(gMultipliersTable) / sizeof(*gMultipliersTable))
             gMultipliersTable[code] = divisor;

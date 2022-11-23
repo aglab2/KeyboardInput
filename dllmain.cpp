@@ -5,6 +5,10 @@
 #include <filesystem>
 #include <fstream>
 
+#define FEATURE_MULTIPLIER_TABLE
+#define FEATURE_CHEAT_ANGLES
+// #define FEATURE_DPAD_UP_FRAMEWALK
+
 #pragma warning(disable : 4996)
 
 BOOL APIENTRY DllMain( HMODULE hModule,
@@ -17,9 +21,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     case DLL_PROCESS_ATTACH:
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
-        break;
     case DLL_PROCESS_DETACH:
-        CloseDLL();
         break;
     }
     return TRUE;
@@ -55,10 +57,11 @@ static RomOpenFn             gJaboRomOpen;
 static WM_KeyDownFn          gJaboWM_KeyDown;
 static WM_KeyUpFn            gJaboWM_KeyUp;
 
+#ifdef FEATURE_MULTIPLIER_TABLE
 static int  gMultipliersTable[255]{};
-
 static bool gActiveKeys[255]{};
 static int gDivisor = 1;
+#endif
 
 static void loadJabo()
 {
@@ -98,7 +101,7 @@ static void loadJabo()
         gJaboWM_KeyUp = (WM_KeyUpFn)GetProcAddress(gJabo, "WM_KeyUp");
     }
 
-#if 1
+#ifdef FEATURE_MULTIPLIER_TABLE
     {
         memset(gMultipliersTable, 0, sizeof(gMultipliersTable));
         auto cfgpath = dir / "KeyboardInputConfig.txt";
@@ -207,6 +210,11 @@ EXPORT void CALL GetDllInfo(PLUGIN_INFO* PluginInfo)
     PluginInfo->Name[3] = 'K';
 }
 
+template <typename T> 
+static inline int sign(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 /******************************************************************
   Function: GetKeys
   Purpose:  To get the current state of the controllers buttons.
@@ -219,10 +227,20 @@ EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
 {
     loadJabo();
     gJaboGetKeys(Control, Keys);
-#if 1
+
+#ifdef FEATURE_MULTIPLIER_TABLE
     Keys->X_AXIS /= gDivisor;
     Keys->Y_AXIS /= gDivisor;
-#else
+#endif
+
+#ifdef FEATURE_CHEAT_ANGLES
+    if (abs(Keys->X_AXIS) == abs(Keys->Y_AXIS))
+    {
+        Keys->Y_AXIS += sign(Keys->Y_AXIS);
+    }
+#endif
+
+#ifdef FEATURE_DPAD_UP_FRAMEWALK
     if (Keys->U_DPAD)
         Keys->Y_AXIS = 80;
 #endif
@@ -283,7 +301,7 @@ EXPORT void CALL RomOpen(void)
 {
     loadJabo();
     gJaboRomOpen();
-#if 1
+#ifdef FEATURE_MULTIPLIER_TABLE
     gDivisor = 1;
     memset(gActiveKeys, 0, sizeof(gActiveKeys));
 #endif
@@ -300,7 +318,7 @@ EXPORT void CALL WM_KeyDown(WPARAM wParam, LPARAM lParam)
 {
     loadJabo();
     gJaboWM_KeyDown(wParam, lParam);
-#if 1
+#ifdef FEATURE_MULTIPLIER_TABLE
     if (0 <= wParam && wParam <= sizeof(gActiveKeys) / sizeof(*gActiveKeys))
     {
         auto& active = gActiveKeys[wParam];
@@ -315,7 +333,6 @@ EXPORT void CALL WM_KeyDown(WPARAM wParam, LPARAM lParam)
             active = true;
         }
     }
-#else
 #endif
 }
 
@@ -330,7 +347,7 @@ EXPORT void CALL WM_KeyUp(WPARAM wParam, LPARAM lParam)
 {
     loadJabo();
     gJaboWM_KeyUp(wParam, lParam);
-#if 1
+#ifdef FEATURE_MULTIPLIER_TABLE
     if (0 <= wParam && wParam <= sizeof(gActiveKeys) / sizeof(*gActiveKeys))
     {
         auto& active = gActiveKeys[wParam];
@@ -345,6 +362,5 @@ EXPORT void CALL WM_KeyUp(WPARAM wParam, LPARAM lParam)
             active = false;
         }
     }
-#else
 #endif
 }

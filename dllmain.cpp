@@ -8,6 +8,7 @@
 #define FEATURE_MULTIPLIER_TABLE
 #define FEATURE_CHEAT_ANGLES
 // #define FEATURE_DPAD_UP_FRAMEWALK
+#define FEATURE_MULTIPLIER_IN_PERCENTS
 
 #pragma warning(disable : 4996)
 
@@ -60,7 +61,12 @@ static WM_KeyUpFn            gJaboWM_KeyUp;
 #ifdef FEATURE_MULTIPLIER_TABLE
 static int  gMultipliersTable[255]{};
 static bool gActiveKeys[255]{};
+#ifdef FEATURE_MULTIPLIER_IN_PERCENTS
+static int64_t gMultiplier = 1;
+static int64_t gMultDivisor = 1;
+#else
 static int gDivisor = 1;
+#endif
 #endif
 
 static void loadJabo()
@@ -229,8 +235,13 @@ EXPORT void CALL GetKeys(int Control, BUTTONS* Keys)
     gJaboGetKeys(Control, Keys);
 
 #ifdef FEATURE_MULTIPLIER_TABLE
+#ifdef FEATURE_MULTIPLIER_IN_PERCENTS
+    Keys->X_AXIS = (Keys->X_AXIS * gMultiplier) / gMultDivisor;
+    Keys->Y_AXIS = (Keys->Y_AXIS * gMultiplier) / gMultDivisor;
+#else
     Keys->X_AXIS /= gDivisor;
     Keys->Y_AXIS /= gDivisor;
+#endif
 #endif
 
 #ifdef FEATURE_CHEAT_ANGLES
@@ -302,7 +313,12 @@ EXPORT void CALL RomOpen(void)
     loadJabo();
     gJaboRomOpen();
 #ifdef FEATURE_MULTIPLIER_TABLE
+#ifdef FEATURE_MULTIPLIER_IN_PERCENTS
+    gMultDivisor = 1;
+    gMultiplier = 1;
+#else
     gDivisor = 1;
+#endif
     memset(gActiveKeys, 0, sizeof(gActiveKeys));
 #endif
 }
@@ -327,7 +343,12 @@ EXPORT void CALL WM_KeyDown(WPARAM wParam, LPARAM lParam)
         {
             if (!active)
             {
+#ifdef FEATURE_MULTIPLIER_IN_PERCENTS
+                gMultDivisor *= 100;
+                gMultiplier *= mult;
+#else
                 gDivisor *= mult;
+#endif
             }
 
             active = true;
@@ -356,7 +377,12 @@ EXPORT void CALL WM_KeyUp(WPARAM wParam, LPARAM lParam)
         {
             if (active)
             {
+#ifdef FEATURE_MULTIPLIER_IN_PERCENTS
+                gMultDivisor /= 100;
+                gMultiplier /= mult;
+#else
                 gDivisor /= mult;
+#endif
             }
 
             active = false;
